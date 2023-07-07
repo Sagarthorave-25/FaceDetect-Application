@@ -1,0 +1,370 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+
+
+
+<style>
+    .vertical {
+        border-left: 3px solid black;
+        height: 700px;
+        position: absolute;
+        left: 50%;
+    }
+
+    .thumbnail {
+        height: 100px;
+        margin: 10px;
+    }
+
+
+
+    table, th, td {
+        border: 1px solid black;
+        border-collapse: collapse;
+    }
+</style>
+
+
+
+<div class="container-fluid">
+  <img id="loaderImg" style="margin-left:250px" src="~/lib/img/loader.gif"/>
+    <div class="row "  id="AllBody">
+        <div class=" col-md-6">
+            <form method="post" enctype="multipart/form-data"> @*asp-controller="Home" asp-action="UploadFile"*@
+                <label>Application No<b class="text-danger">*</b></label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <label>Source<b class="text-danger">*</b></label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+               <label>Upload Single Image<b class="text-danger">*</b></label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="Appno" id="Appno" placeholder="Enter Application Number" />&nbsp;
+                    <input type="text" class="form-control" name="Source" id="Source" placeholder="Enter Source" />&nbsp;
+
+                    <input type="file" id="FormFile" name="FormFile" accept="image/*" class="form-control" />
+                    <div class="input-group-append">
+                        <button id="SingleImgSubmit" type="submit" value="Upload" class=" btn btn-success">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <br />
+
+            </form>
+            <div class=" mt-5 bg-black ml-3">
+                <img class="ResultShow" id="imgPreview" src="#" alt="pic" width="400px" height="250px"/>
+                <br />
+                <label class="ResultShow" id="lblFace">Face Id:</label>
+                <b><label class="ResultShow" id="faceId"></label></b>
+            </div>
+        </div>
+        <div class=" col-md-6">
+            <form method="post" enctype="multipart/form-data">@* asp-controller="Home" asp-action="UploadFile">*@
+                <label>Upload multiple file</label>
+                <div class="input-group ">
+                    <input type="file" name="MulpostedFiles" id="MulpostedFiles" multiple class="form-control" accept="image/*" />
+                    <div class="input-group-append">
+                        <button type="submit" value="Upload" id="MultiImgSubmit" class="form-control btn btn-success">
+                            <i class="fa fa-search"></i>
+                        </button>&nbsp;
+                       
+                        <button type="submit" value="Upload" id="similarity" class="form-control btn btn-success">
+                            Find similarity
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="mt-5 " id="similarityTable">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Face ID</th>
+                            <th>Matching Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="t_Body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+    window.onload = function () {
+
+        //Check File API support
+        if (window.File && window.FileList && window.FileReader) {
+
+            var filesInput = document.getElementById("MulpostedFiles");
+
+            filesInput.addEventListener("change", function (event) {
+
+                var files = event.target.files; //FileList object
+                var output = document.getElementById("t_Body");
+                $("#t_Body").empty();
+                var k = 0;
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
+
+                    //Only pics
+                    if (!file.type.match('image'))
+                        continue;
+
+                    var picReader = new FileReader();
+
+                    picReader.addEventListener("load", function (event) {
+
+                        var picFile = event.target;
+
+                        $("#t_Body").append("<tr><td><img class='thumbnail' src='" + picFile.result + "'" +
+                            "title='" + picFile.name + "'/></td><td id='img_" + k + "'></td><td id='percent_" + k + "'></td></tr>");
+                        //output.insertBefore(div, null);
+                        k++;
+                    });
+                    $("#similarityTable").show();
+                    //Read the image
+                    picReader.readAsDataURL(file);
+                }
+
+            });
+        }
+        else {
+            console.log("Your browser does not support File API");
+        }
+    }
+    $(document).ready(() => {
+        $("#similarityTable").hide();
+        $("#imgPreview").hide();
+        $("#lblFace").hide();
+        $("#similarity").hide();
+        $("#loaderImg").hide();
+        $("#FormFile").change(function () {
+           
+                $("#imgPreview").hide();
+                const file = this.files[0];
+                if (file) {
+                    let reader = new FileReader();
+                    reader.onload = function (event) {
+                        $("#imgPreview")
+                            .attr("src", event.target.result);
+                    };
+                    $("#imgPreview").show();
+                    reader.readAsDataURL(file);
+                }
+            
+        });
+    });
+
+    $("#similarity").click(function (event) {
+        event.preventDefault();
+        var Application = $("#Appno").val();
+        $("#loaderImg").show();
+        $("#AllBody").hide();
+
+        var Source=$("#Source").val();
+        var SingleImg=$("#faceId").html();
+         if (Application.length == 0) {
+            $("#loaderImg").hide();
+            $("#AllBody").show();
+             toastr.error("Please Enter Application Number");
+        }else{
+            if (/^[a-zA-Z0-9- ]*$/.test(Application) == false) {
+                $("#loaderImg").hide();
+                $("#AllBody").show();
+                toastr.error("Please Enter Valid Application Number");
+            }else{
+                if (SingleImg.length == 0) {
+                    $("#loaderImg").hide();
+                    $("#AllBody").show();
+                    toastr.error("Please upload single image");
+            }else{
+           var MultiImgList = new Array();
+            var rowCount = $("#t_Body tr").length;
+            if (rowCount.length == 0) {
+                        $("#loaderImg").hide();
+                        $("#AllBody").show();
+                    toastr.error("Please upload multiple image");
+             }else{
+
+                for (var x = 0; x < rowCount;x++){
+                    var imgx = $('#img_' + x).text();
+                       MultiImgList.push(imgx);
+                }
+                 $(this).unbind('submit').submit();
+                var fileData = new FormData();
+              
+                fileData.append("photofaceid", SingleImg);
+               fileData.append("facelist", MultiImgList);
+                fileData.append("source", $("#Source").val())
+                fileData.append("applicationnumber", $("#Appno").val())
+               
+                $.ajax({
+                    url: '/Home/FindSimilarity',
+                    type: "POST",
+                    contentType: false, // Not to set any content header
+                    processData: false, // Not to process data
+                    data: fileData,
+                    success: function (result) {
+                        for (var x = 0; x < result.length; x++) {
+                                    $("td:contains("+result[x].faceId+")")
+                                        .next().text(function () {
+                                            $(this).html(result[x].confidence);
+                                            // return $(this).text() + " Hello"
+                                        });
+                                 //$("#percent_" + x).html(result[x]);                    
+                        }
+                                $("#loaderImg").hide();
+                                $("#AllBody").show();
+                    },
+                    error: function (err) {
+                        alert(err.statusText);
+                                $("#loaderImg").hide();
+                                $("#AllBody").show();
+                    }
+                });
+
+             }
+        }
+            }
+        }
+    });
+    $("#SingleImgSubmit").click(function (event) {
+        event.preventDefault();
+        $("#loaderImg").show();
+        $("#AllBody").hide();
+          var Application= $("#Appno").val();
+        if ($("#Appno").val().length == 0) {
+            $("#loaderImg").hide();
+             $("#AllBody").show();
+            toastr.error("Please Enter Application Number");
+           
+        }
+        else {
+            if (/^[a-zA-Z0-9- ]*$/.test(Application) == false) {
+                $("#loaderImg").hide();
+                $("#AllBody").show();
+                toastr.error("Please Enter Valid Application Number");
+        
+            }
+            else{
+            //event.preventDefault();
+                var id = $('#FormFile').val();
+                if (id == null || id == "" || id == undefined) {
+                    $("#loaderImg").hide();
+                     $("#AllBody").show();
+                    toastr.error("please select image file");
+                
+            }
+                else {
+                $(this).unbind('submit').submit();
+                if (window.FormData !== undefined) {
+                    var fileUpload = $("#FormFile").get(0);
+                    var files = fileUpload.files;
+
+                    // Create FormData object
+                    var fileData = new FormData();
+                    for (var i = 0; i < files.length; i++) {
+                            fileData.append("imgfile", files[i]);
+                    }
+                        fileData.append("source", $("#Source").val())
+                        fileData.append("applicationnumber", $("#Appno").val())
+
+                    $.ajax({
+                        url: '/Home/SingleUploadFile',
+                        type: "POST",
+                        contentType: false, // Not to set any content header
+                        processData: false, // Not to process data
+                        data: fileData,
+                        success: function (result) {
+                                $("#loaderImg").hide();
+                                $("#AllBody").show();
+                                $("#faceId").html(result);
+                                $("#lblFace").show();
+                        },
+                        error: function (err) {
+                            alert(err.statusText);
+                                $("#loaderImg").hide();
+                                $("#AllBody").show();
+                        }
+                    });
+
+
+                }
+            }
+            }
+        }
+        $('#SingleImgSubmit').attr("disabled", false);
+    });
+    $("#MultiImgSubmit").click(function (event) {
+        $("#loaderImg").show();
+        $("#AllBody").hide();
+        var Application = $("#Appno").val();
+        event.preventDefault();
+       
+        if ($("#Appno").val().length == 0) {
+            $("#loaderImg").hide();
+            $("#AllBody").show();
+            toastr.error("Please Enter Application Number");
+        } else {
+            if (/^[a-zA-Z0-9- ]*$/.test(Application) == false) {
+                $("#loaderImg").hide();
+                $("#AllBody").show();
+                toastr.error("Please Enter Valid Application Number");
+            }
+            else {
+            var id = $('#MulpostedFiles').val();
+
+            if (id == null || id == "" || id == undefined) {
+                toastr.error("please select image file");
+                    $("#loaderImg").hide();
+                    $("#AllBody").show();
+            }
+            else {
+
+                $(this).unbind('submit').submit();
+                if (window.FormData !== undefined) {
+                    var fileUpload = $("#MulpostedFiles").get(0);
+                    var files = fileUpload.files;
+
+                    // Create FormData object
+                    var fileData = new FormData();
+                    for (var i = 0; i < files.length; i++) {
+                        fileData.append("imgfile", files[i]);
+                    }
+                    fileData.append("source", $("#Source").val())
+                    fileData.append("applicationnumber", $("#Appno").val())
+
+                    $.ajax({
+                        url: '/Home/MultiUploadFile',
+                        type: "POST",
+                        contentType: false,
+                        processData: false, 
+                        data: fileData,
+                        success: function (result) {
+                            for(var x=0; x<result.length; x++)
+                            {
+                                    $("#img_"+x).html(  result[x] );
+                                    $("#similarity").show();
+                            }
+                              $("#loaderImg").hide();
+                                $("#AllBody").show();
+                              
+                            },
+                        error: function (err) {
+                            alert(err.statusText);
+                                $("#loaderImg").hide();
+                                $("#AllBody").show();
+                        }
+                    });
+
+
+                }
+                }
+            }
+        }
+    });
+</script>
